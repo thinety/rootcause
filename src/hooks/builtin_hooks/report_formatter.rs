@@ -900,7 +900,13 @@ impl<'a, 'b> DefaultFormatterState<'a, 'b> {
         tmp_value_buffer.clear();
         match function {
             FormattingFunction::Display => write!(tmp_value_buffer, "{value}")?,
-            FormattingFunction::Debug => write!(tmp_value_buffer, "{value:?}")?,
+            FormattingFunction::Debug => {
+                if self.formatter.alternate() {
+                    write!(tmp_value_buffer, "{value:#?}")?
+                } else {
+                    write!(tmp_value_buffer, "{value:?}")?
+                }
+            }
         }
 
         let mut value_lines = tmp_value_buffer.trim_end().lines().peekable();
@@ -973,8 +979,11 @@ impl<'a, 'b> DefaultFormatterState<'a, 'b> {
         } else {
             &self.config.report_node_middle_formatting
         };
-        let context_style =
+        let mut context_style =
             report.preferred_context_formatting_style(self.report_formatting_function);
+        if self.formatter.alternate() && context_style.function == FormattingFunction::Display {
+            context_style.follow_source = true;
+        }
         self.format_node(
             tmp_value_buffer,
             formatting,
